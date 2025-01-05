@@ -7,7 +7,7 @@ const PORT = 8080;
 
 // Enable CORS for all origins or specific origin
 app.use(cors({
-  origin: "http://localhost:8000", // Allow requests only from this origin
+  origin: "*", // Allow requests only from this origin
 }));
 
 // Proxy endpoint
@@ -25,8 +25,11 @@ app.get("/proxy", async (req, res) => {
       },
     });
 
-    // Return the response from the target server
-    res.status(response.status).json(response.data);
+    // Set content type to text/html
+    res.setHeader("Content-Type", "text/html");
+
+    // Send raw HTML response
+    res.status(response.status).send(response.data);
   } catch (error) {
     res
       .status(error.response?.status || 500)
