@@ -3,7 +3,7 @@ import axios from "axios";
 import cors from "cors"; // Import CORS middleware
 
 const app = express();
-const PORT = 8080;
+const PORT = 3000;
 
 // Enable CORS for all origins or specific origin
 app.use(cors({
