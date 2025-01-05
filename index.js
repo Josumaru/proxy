@@ -17,18 +17,22 @@ app.use(express.json());
 
 // Proxy endpoint
 app.get("/proxy", async (req, res) => {
-  const targetUrl = decodeURIComponent(req.query.url); // Target URL
+  const targetUrl = req.query.url ? decodeURIComponent(req.query.url) : null; // Target URL
   if (!targetUrl) {
     return res.status(400).json({ error: "URL is required" });
   }
 
-  console.log('====================================');
-  console.log(targetUrl);
-  console.log('====================================');
+  // Add path from request to target URL
+  const targetPath = req.path.replace("/proxy", ""); // Add any additional path
+  const fullTargetUrl = targetUrl + targetPath;
+
+  console.log("====================================");
+  console.log("Target URL:", fullTargetUrl);
+  console.log("====================================");
 
   // Validate URL format
   try {
-    new URL(targetUrl); // Throws error if URL is invalid
+    new URL(fullTargetUrl); // Throws error if URL is invalid
   } catch (err) {
     return res.status(400).json({ error: "Invalid URL format" });
   }
@@ -40,7 +44,7 @@ app.get("/proxy", async (req, res) => {
       : {};
 
     // Perform request to the target URL
-    const response = await axios.get(targetUrl, {
+    const response = await axios.get(fullTargetUrl, {
       headers: {
         ...additionalHeaders, // Apply custom headers passed via query
       },
@@ -51,21 +55,20 @@ app.get("/proxy", async (req, res) => {
     console.log("Content-Type:", contentType);
 
     // Handle different content types
-    if (contentType.includes("application/json")) {
-      // Return JSON response
-      res.setHeader("Content-Type", "application/json");
-      res.status(response.status).send(response.data);
-    } else if (contentType.includes("text/html")) {
-      // Return HTML response
-      res.setHeader("Content-Type", "text/html");
-      res.status(response.status).send(response.data.toString());
-    } else if (contentType.includes("application/vnd.apple.mpegurl")) {
-      // Handle m3u8 (for example)
-      res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
-      res.status(response.status).send(response.data.toString());
+    res.setHeader("Content-Type", contentType);
+     // If `.m3u8` file, rewrite relative URLs
+     if (contentType.includes("application/vnd.apple.mpegurl")) {
+      const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf("/") + 1); // Dapatkan jalur utama
+      const rewrittenContent = response.data
+        .toString()
+        .replace(/(.*\.m3u8|.*\.ts)/g, (match) => {
+          return `${req.protocol}://${req.get("host")}/proxy?url=${encodeURIComponent(
+            new URL(match, baseUrl).toString()
+          )}`;
+        });
+      res.send(rewrittenContent);
     } else {
-      // For other types of files, return as binary data
-      res.setHeader("Content-Type", contentType);
+      // Untuk file lainnya, proxy data langsung
       res.status(response.status).send(response.data);
     }
   } catch (error) {
