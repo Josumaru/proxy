@@ -66,6 +66,9 @@ app.get("/proxy", async (req, res) => {
      // If `.m3u8` file, rewrite relative URLs
      if (contentType.includes("application/vnd.apple.mpegurl")) {
       const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf("/") + 1); // Dapatkan jalur utama
+      console.log('====================================');
+      console.log(req.protocol);
+      console.log('====================================');
       const rewrittenContent = response.data
         .toString()
         .replace(/(.*\.m3u8|.*\.ts)/g, (match) => {
