@@ -15,6 +15,13 @@ app.use(
 // Middleware for parsing JSON from query parameters
 app.use(express.json());
 
+app.use((req, res, next) => {
+  if (req.headers["x-forwarded-proto"] !== "https") {
+    return res.redirect(`https://${req.headers.host}${req.url}`);
+  }
+  next();
+});
+
 // Proxy endpoint
 app.get("/proxy", async (req, res) => {
   const targetUrl = req.query.url ? decodeURIComponent(req.query.url) : null; // Target URL
