@@ -15,13 +15,6 @@ app.use(
 // Middleware for parsing JSON from query parameters
 app.use(express.json());
 
-app.use((req, res, next) => {
-  if (req.headers["x-forwarded-proto"] !== "https") {
-    return res.redirect(`https://${req.headers.host}${req.url}`);
-  }
-  next();
-});
-
 // Proxy endpoint
 app.get("/proxy", async (req, res) => {
   const targetUrl = req.query.url ? decodeURIComponent(req.query.url) : null; // Target URL
@@ -61,18 +54,22 @@ app.get("/proxy", async (req, res) => {
     const contentType = response.headers["content-type"];
     console.log("Content-Type:", contentType);
 
+    // Get headers protocol
+    const protocol =
+    req.headers["x-forwarded-proto"] || req.protocol;
+
     // Handle different content types
     res.setHeader("Content-Type", contentType);
-     // If `.m3u8` file, rewrite relative URLs
-     if (contentType.includes("application/vnd.apple.mpegurl")) {
+    // If `.m3u8` file, rewrite relative URLs
+    if (contentType.includes("application/vnd.apple.mpegurl")) {
       const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf("/") + 1); // Dapatkan jalur utama
       console.log('====================================');
-      console.log(req.protocol);
+      console.log(protocol);
       console.log('====================================');
       const rewrittenContent = response.data
         .toString()
         .replace(/(.*\.m3u8|.*\.ts)/g, (match) => {
-          return `${req.protocol}://${req.get("host")}/proxy?url=${encodeURIComponent(
+          return `${protocol}://${req.get("host")}/proxy?url=${encodeURIComponent(
             new URL(match, baseUrl).toString()
           )}`;
         });
